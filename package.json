@@ -1,0 +1,18 @@
+{
+  "name": "styl_to_scss",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "css": "node index.js",
+    "component": "node replace.js"
+  },
+  "type": "module",
+  "dependencies": {
+    "css-to-scss": "^0.5.1",
+    "css2sass": "^0.1.1",
+    "node-fetch": "^3.3.2",
+    "sass": "^1.66.1",
+    "stylus": "^0.59.0"
+  }
+}
