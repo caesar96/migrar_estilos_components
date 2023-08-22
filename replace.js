@@ -35,7 +35,7 @@ function processDirectory(dir) {
                 processDirectory(filePath);
             }            
             
-        } else if (stats.isFile() && filePath.includes('.component.ts')) {
+        } else if (!ignoredDirectories.includes(filePath) && stats.isFile() && filePath.includes('.component.ts')) {
             replaceStylWithCss(filePath);
         }
     }

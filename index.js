@@ -1,18 +1,8 @@
-// import 'node-fetch';
-
-// const fs = require('fs');
-import fs from 'fs'
-import path from 'path'
-// const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 import stylus from 'stylus';
-// const stylus = require('stylus');
-// const cssConverter = require('css-to-scss');
-// const sass = require('sass');
-// const css2sass = require('./cssToSass')
-
 import css2sass from './convert.js';
-// const css2sass = require('./convert')
 
 const directoryPath = process.argv[2];
 const type = process.argv[3] ? process.argv[3] : 'scss';
@@ -28,83 +18,169 @@ const failedFiles = []
 
 function getFileName(filePath) {
     return path.join(path.dirname(filePath));
-} 
+}
 
-function processStylusFile(filePath) {
-    // console.log(`Procesando archivo ${filePath}`)
-    fs.readFile(filePath, 'utf8', (err, stylusContent) => {
-        if (err) {
-            return console.log('Error reading file:', filePath);
+function isIgnoredDir(filePath) {
+    return !!ignoredDirectories.find( ignore => filePath.includes(ignore) )
+}
+
+async function processStylusFile(filePath) {
+
+    const scssFilePath = path.join(path.dirname(filePath), path.basename(filePath, '.styl') + `.${type}`);
+
+    filePaths.add(getFileName(filePath))
+
+    try {
+        
+        const stats = fs.statSync(scssFilePath);
+
+        if(stats.isFile()) {
+            console.clear();
+            console.log(`El archivo ya existe: ${scssFilePath}`)
+            return null;
         }
+    } catch (error) {
+        
+    }
 
-        filePaths.add(getFileName(filePath))
 
-
-        // console.log('Convert stylus to CSS: ', filePath);
-        // Convert stylus to CSS
-        stylus(stylusContent)
-        .set("filename", filePath)
-        .set('paths', [...filePaths])
-        .render( async (err, cssContent) => {
-            
+    return new Promise( (resolve, reject) => {
+        // console.log(`Procesando archivo ${filePath}`)
+        fs.readFile(filePath, 'utf8', (err, stylusContent) => {
             if (err) {
-                failedFiles.push(filePath)
-                return console.log('Error converting stylus to CSS: ', filePath, "\n", err?.message);
+                console.log(`Error reading file: ${filePath}`)
+                reject(err)
+                return;
             }
 
+            resolve(stylusContent)
+
+        });
+    })
+    .then( (stylusContent) => {
+
+        return new Promise( (resolve, reject) => {
+            // Convert stylus to CSS
+            stylus(stylusContent)
+            .set("filename", filePath)
+            .set('paths', [...filePaths])
+            .render( (err, cssContent) => {
+                
+                if (err) {
+                    failedFiles.push(filePath);
+                    return reject(`Error converting stylus to CSS: ${filePath}\n${err?.message}`);
+                }
+                resolve(cssContent)
+            });             
+        })
+        .then( async (cssContent) => {
             const scssContent = type === 'css' ? "" : await css2sass(cssContent, type, filePath);
 
-            // Write to new .scss file
-            const scssFilePath = path.join(path.dirname(filePath), path.basename(filePath, '.styl') + `.${type}`);
+            if(scssContent !== null) {
+                await new Promise( (resolve, reject) => {
+                    fs.writeFile(scssFilePath, type === 'css' ? cssContent : scssContent, (err) => {
+                        if (err) {
+                            
+                            return reject(err)
+                        }
+                        fs.close(scssFilePath, () => {});
+        
+                        resolve(true)
+                        
+                    });
+                })
+                .then( () => {
+                    console.log(`Converted ${scssFilePath}`);
+                })
+                .catch( (error) => {
+                    console.log('Error writing to file:', scssFilePath);
+                })
+            }
 
-            // console.log('Convert CSS to SCSS: ', scssFilePath);
-            scssContent !== null && fs.writeFile(scssFilePath, type === 'css' ? cssContent : scssContent, (err) => {
-                if (err) {
-                    return console.log('Error writing to file:', scssFilePath);
-                }
-                console.log(`Converted ${path.basename(filePath)} to ${path.basename(scssFilePath)}`);
-            });
-        });
-    });
+        })
+        .catch( (error) => {
+            console.log(error)
+        })
+       
+    })
+    .catch(err => {
+        
+    })
+
 }
 
 function traverseDirectory(directory) {
-    fs.readdir(directory, (err, files) => {
-        if (err) {
-            return console.log('Unable to scan directory: ' + err);
-        }
 
-        files.forEach((file) => {
-            // console.log({file})
+    return new Promise( (resolve, reject) => {
+        fs.readdir(directory, (err, files) => {
+
+            if(err) {
+                reject(err)
+                return;
+            }
+            resolve(files)
+            
+        });
+    })
+    .then( async (files) => {
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i]
             const filePath = path.join(directory, file);
 
-            fs.stat(filePath, (err, stats) => {
-                if (err) {
-                    console.log('Error fetching file stats:', filePath);
-                    return;
-                }
+            await new Promise( (resolve, reject) => {
+                fs.stat(filePath, async (err, stats) => {
+                    if(err) {
+                        reject(err)
+                        return;
+                    }
+
+                    resolve(stats)
+                });
+            })
+            .then( async (stats) => {
 
                 if (stats.isDirectory()) {
                     // Check if the directory is in the ignored list
-                    if (!ignoredDirectories.includes(file)) {
+                    if (!isIgnoredDir(filePath)) {
                         // If it's not ignored, traverse it
-                        traverseDirectory(filePath);
+                        await traverseDirectory(filePath);
                     }
-                } else if (path.extname(filePath) === '.styl') {
+                } 
+                
+                if (!isIgnoredDir(filePath) && path.extname(filePath) === '.styl') {
                     // If it's a .styl file, process it
-                    processStylusFile(filePath);
+                    await processStylusFile(filePath);
                 }
-            });
-        });
-    });
+
+            })
+            .catch( (errr) => {
+                console.log('Error fetching file stats:', filePath);
+            })
+        }
+    })
+    .catch( (err) => {
+        console.log('Unable to scan directory: ' + err);
+    })
+
 }
 
-// Start the traversal from the root directory
-traverseDirectory(directoryPath?.trim());
-
-if(failedFiles.length > 0) {
-    failedFiles.forEach(file => {
-        processStylusFile(file)
+function main() {
+    return traverseDirectory(directoryPath?.trim())
+    .then( () => {
+        console.log({failedFiles})
+        if(failedFiles.length > 0) {
+            failedFiles.forEach(file => {
+                processStylusFile(file)
+            })
+        }
     })
 }
+
+
+await main();
+// Start the traversal from the root directory
+
+
+
     

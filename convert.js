@@ -2,6 +2,16 @@ import fetch from 'node-fetch';
 import fs from 'fs';
 import path from 'path';
 
+async function delay (time = 0) {
+    let timeOut
+    return new Promise( (resolve, reject) => {
+        timeOut = setTimeout( () => {
+            clearTimeout(timeOut)
+            resolve(true);
+        }, time * 1000)
+    })
+}
+
 async function enviar(css, type, filename = '') {
     const params = { css, type };
 
@@ -42,16 +52,18 @@ async function enviar(css, type, filename = '') {
                 });                
             });
 
-
-            throw new Error(`Error al hacer la petición: ${filename}`);
+            // throw new Error(`Error al hacer la petición: ${filename}`);
         } else if (data.output) {
             return data.output;
         }
 
         return null;
     } catch (error) {
-        console.error("Error:", error);
-        return null;
+        console.error("Error:", error?.code);
+       
+        await delay(10);
+        return enviar(css, type, filename);
+
     }
 }
 
