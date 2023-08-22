@@ -52,22 +52,13 @@ function processStylusFile(filePath) {
                 return console.log('Error converting stylus to CSS: ', filePath, "\n", err?.message);
             }
 
-            
-            // Convert CSS to SCSS
-            // const scssContent = cssConverter.cssToScss(cssContent);
-
-            // const scssContent = sass.renderSync({
-            //     data: cssContent,
-            //     indentedSyntax: true // for .scss (not .sass)
-            // });
-
-            const scssContent = await css2sass(cssContent, type, filePath);
+            const scssContent = type === 'css' ? "" : await css2sass(cssContent, type, filePath);
 
             // Write to new .scss file
             const scssFilePath = path.join(path.dirname(filePath), path.basename(filePath, '.styl') + `.${type}`);
 
             // console.log('Convert CSS to SCSS: ', scssFilePath);
-            fs.writeFile(scssFilePath, scssContent, (err) => {
+            fs.writeFile(scssFilePath, type === 'css' ? cssContent : scssContent, (err) => {
                 if (err) {
                     return console.log('Error writing to file:', scssFilePath);
                 }
