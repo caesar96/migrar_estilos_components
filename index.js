@@ -58,7 +58,7 @@ function processStylusFile(filePath) {
             const scssFilePath = path.join(path.dirname(filePath), path.basename(filePath, '.styl') + `.${type}`);
 
             // console.log('Convert CSS to SCSS: ', scssFilePath);
-            fs.writeFile(scssFilePath, type === 'css' ? cssContent : scssContent, (err) => {
+            scssContent !== null && fs.writeFile(scssFilePath, type === 'css' ? cssContent : scssContent, (err) => {
                 if (err) {
                     return console.log('Error writing to file:', scssFilePath);
                 }

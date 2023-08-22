@@ -4,7 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "css": "node index.js",
+    "estilo": "node index.js",
     "component": "node replace.js"
   },
   "type": "module",

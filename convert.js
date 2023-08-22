@@ -33,11 +33,16 @@ async function enviar(css, type, filename = '') {
 
             const log = `/* ERROR: ${data.output}*/\n/* File Path: ${filename} */\n\n${css}`;
 
-            fs.writeFile(filePath, log, (err) => {
-                if (err) {
-                    return console.log('Error writing to file:', filePath);
-                }
+            fs.mkdir(path.dirname(filePath), { recursive: true }, (err) => {
+                if (err) throw err;
+                fs.writeFile(filePath, log, (err) => {
+                    if (err) {
+                        return console.log('Error writing to file:', filePath);
+                    }
+                });                
             });
+
+
             throw new Error(`Error al hacer la petición: ${filename}`);
         } else if (data.output) {
             return data.output;
@@ -46,6 +51,7 @@ async function enviar(css, type, filename = '') {
         return null;
     } catch (error) {
         console.error("Error:", error);
+        return null;
     }
 }
 
