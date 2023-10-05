@@ -83,7 +83,7 @@ async function processStylusFile(filePath) {
                             
                             return reject(err)
                         }
-                        fs.close(scssFilePath, () => {});
+                        // fs.close(scssFilePath, () => {});
         
                         resolve(true)
                         
@@ -146,8 +146,7 @@ function traverseDirectory(directory) {
                         // If it's not ignored, traverse it
                         await traverseDirectory(filePath);
                     }
-                } 
-                
+                }
                 if (!isIgnoredDir(filePath) && path.extname(filePath) === '.styl') {
                     // If it's a .styl file, process it
                     await processStylusFile(filePath);

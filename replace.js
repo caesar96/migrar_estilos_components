@@ -10,6 +10,10 @@ const type = process.argv[3] ? process.argv[3] : 'css';
 
 const ignoredDirectories = ['node_modules', 'docker', "dist"]; // Add the names of directories you wish to ignore
 
+function isIgnoredDir(filePath) {
+    return !!ignoredDirectories.find( ignore => filePath.includes(ignore) )
+}
+
 function replaceStylWithCss(filePath) {
 
     //  console.log(filePath)
@@ -31,11 +35,11 @@ function processDirectory(dir) {
         const stats = fs.statSync(filePath);
 
         if (stats.isDirectory()) {
-            if (!ignoredDirectories.includes(filePath)) {
+            if (!isIgnoredDir(filePath)) {
                 processDirectory(filePath);
             }            
             
-        } else if (!ignoredDirectories.includes(filePath) && stats.isFile() && filePath.includes('.component.ts')) {
+        } else if (!isIgnoredDir(filePath) && stats.isFile() && filePath.includes('component.ts')) {
             replaceStylWithCss(filePath);
         }
     }
